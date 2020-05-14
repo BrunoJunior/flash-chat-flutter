@@ -157,9 +157,5 @@ class MessageBubble extends StatelessWidget {
         ],
       ),
     );
-    return Text(
-      '$sender : $message',
-      style: TextStyle(fontSize: 50.0),
-    );
   }
 }

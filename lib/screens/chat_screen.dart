@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flash_chat/constants.dart';
 import 'package:flutter/material.dart';
 
@@ -8,6 +10,33 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final Firestore _store = Firestore.instance;
+  FirebaseUser loggedInUser;
+  String messageToAdd;
+
+  @override
+  void initState() {
+    super.initState();
+    _auth
+        .currentUser()
+        .then((user) => user != null ? loggedInUser = user : null)
+        .then((val) => print(loggedInUser.email))
+        .catchError((err) => print(err));
+    messages;
+  }
+
+  get messages async {
+    await for (var snapshot in _store.collection('messages').snapshots()) {
+      snapshot.documents.forEach((message) => print(message.data));
+    }
+  }
+
+  logOut(BuildContext context) async {
+    await _auth.signOut();
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -15,10 +44,9 @@ class _ChatScreenState extends State<ChatScreen> {
         leading: null,
         actions: <Widget>[
           IconButton(
-              icon: Icon(Icons.close),
-              onPressed: () {
-                //Implement logout functionality
-              }),
+            icon: Icon(Icons.close),
+            onPressed: () => logOut(context),
+          ),
         ],
         title: Text('⚡️Chat'),
         backgroundColor: Colors.lightBlueAccent,
@@ -35,15 +63,14 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: <Widget>[
                   Expanded(
                     child: TextField(
-                      onChanged: (value) {
-                        //Do something with the user input.
-                      },
+                      onChanged: (value) => messageToAdd = value,
                       decoration: kMessageTextFieldDecoration,
                     ),
                   ),
                   FlatButton(
-                    onPressed: () {
-                      //Implement send functionality.
+                    onPressed: () async {
+                      await _store.collection('messages').add(
+                          {"text": messageToAdd, "sender": loggedInUser.email});
                     },
                     child: Text(
                       'Send',

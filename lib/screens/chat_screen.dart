@@ -31,7 +31,7 @@ class _ChatScreenState extends State<ChatScreen> {
         .collection('messages')
         .snapshots()
         .where((snapshot) => snapshot.documents.length > 0)
-        .map((snapshot) => snapshot.documents
+        .map((snapshot) => snapshot.documents.reversed
             .where((document) => document.data["sender"].toString().length > 0)
             .map((document) => MessageBubble(
                   sender: document.data["sender"],
@@ -71,6 +71,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ? Expanded(
                       child: ListView(
                         children: snapshot.data,
+                        reverse: true,
                       ),
                     )
                   : Center(
@@ -115,6 +116,7 @@ class _ChatScreenState extends State<ChatScreen> {
 class MessageBubble extends StatelessWidget {
   final String sender, message;
   final bool isMe;
+  final radius = Radius.circular(20.0);
   MessageBubble(
       {@required this.sender, @required this.message, this.isMe = false});
   @override
@@ -133,15 +135,20 @@ class MessageBubble extends StatelessWidget {
             ),
           ),
           Material(
-            color: isMe ? Colors.lightGreen : Colors.lightBlue,
-            borderRadius: BorderRadius.circular(20),
+            color: isMe ? Colors.white : Colors.lightBlue,
+            borderRadius: BorderRadius.only(
+              topLeft: (isMe ? Radius.zero : radius),
+              topRight: (isMe ? radius : Radius.zero),
+              bottomLeft: radius,
+              bottomRight: radius,
+            ),
             elevation: 5,
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: Text(
                 message,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: isMe ? Colors.black54 : Colors.white,
                   fontSize: 15,
                 ),
               ),

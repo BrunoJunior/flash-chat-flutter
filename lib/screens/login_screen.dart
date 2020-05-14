@@ -72,13 +72,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         email: email,
                         password: password,
                       );
+                      Navigator.pushNamed(context, ChatScreen.id);
                     } catch (err) {
                       Scaffold.of(context).showSnackBar(SnackBar(
                         content: Text(err.toString()),
                       ));
                     } finally {
                       setState(() => _loading = false);
-                      Navigator.pushNamed(context, ChatScreen.id);
                     }
                   },
                   color: Colors.lightBlueAccent,

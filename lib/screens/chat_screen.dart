@@ -12,6 +12,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final Firestore _store = Firestore.instance;
+  final msgTxtCtrl = TextEditingController();
   FirebaseUser loggedInUser;
   String messageToAdd;
 
@@ -21,15 +22,23 @@ class _ChatScreenState extends State<ChatScreen> {
     _auth
         .currentUser()
         .then((user) => user != null ? loggedInUser = user : null)
-        .then((val) => print(loggedInUser.email))
         .catchError((err) => print(err));
     messages;
   }
 
-  get messages async {
-    await for (var snapshot in _store.collection('messages').snapshots()) {
-      snapshot.documents.forEach((message) => print(message.data));
-    }
+  Stream<List<Widget>> get messages {
+    return _store
+        .collection('messages')
+        .snapshots()
+        .where((snapshot) => snapshot.documents.length > 0)
+        .map((snapshot) => snapshot.documents
+            .where((document) => document.data["sender"].toString().length > 0)
+            .map((document) => MessageBubble(
+                  sender: document.data["sender"],
+                  message: document.data["text"],
+                  isMe: document.data["sender"] == loggedInUser.email,
+                ))
+            .toList());
   }
 
   logOut(BuildContext context) async {
@@ -56,6 +65,20 @@ class _ChatScreenState extends State<ChatScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
+            StreamBuilder<List<Widget>>(
+              stream: messages,
+              builder: (context, snapshot) => snapshot.hasData
+                  ? Expanded(
+                      child: ListView(
+                        children: snapshot.data,
+                      ),
+                    )
+                  : Center(
+                      child: CircularProgressIndicator(
+                        backgroundColor: Colors.white70,
+                      ),
+                    ),
+            ),
             Container(
               decoration: kMessageContainerDecoration,
               child: Row(
@@ -63,6 +86,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: <Widget>[
                   Expanded(
                     child: TextField(
+                      controller: msgTxtCtrl,
                       onChanged: (value) => messageToAdd = value,
                       decoration: kMessageTextFieldDecoration,
                     ),
@@ -71,6 +95,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     onPressed: () async {
                       await _store.collection('messages').add(
                           {"text": messageToAdd, "sender": loggedInUser.email});
+                      msgTxtCtrl.clear();
                     },
                     child: Text(
                       'Send',
@@ -83,6 +108,51 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class MessageBubble extends StatelessWidget {
+  final String sender, message;
+  final bool isMe;
+  MessageBubble(
+      {@required this.sender, @required this.message, this.isMe = false});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        crossAxisAlignment:
+            isMe ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+        children: <Widget>[
+          Text(
+            isMe ? "Me" : sender,
+            style: TextStyle(
+              color: Colors.black54,
+              fontSize: 12,
+            ),
+          ),
+          Material(
+            color: isMe ? Colors.lightGreen : Colors.lightBlue,
+            borderRadius: BorderRadius.circular(20),
+            elevation: 5,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                message,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    return Text(
+      '$sender : $message',
+      style: TextStyle(fontSize: 50.0),
     );
   }
 }
